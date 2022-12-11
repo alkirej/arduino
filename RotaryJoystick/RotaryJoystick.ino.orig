@@ -1,0 +1,181 @@
+/**
+ * Implement a rotating joystick.  The issue is as follows:
+ * 1-Mame is expecting an input when the joystick is rotated. 
+ *   If the joystick is rotated clockwise, one key is pressed, and
+ *   if the joystick is rotated counter-clockwise a second key is 
+ *   pressed. (Note: once the key is pressed, it can be released.)
+ * 2-The joystick recognizes 12 states. One for each click the joystick
+ *   makes as it completes a circuit (circle). This state is always 
+ *   active until the joystick is rotated.
+ * 3-Since this is not a direct map, some low level logic is necessary
+ *   to convert the natural state of the rotating joystick into
+ *   the input MAME wants.
+ *   
+ * To implement this, we
+ * 1-Connect the 4 joystick directions to joystick buttons as is normal.
+ * 2-Connect 13 wires of the rotation circuit board (1 for each of the 12
+ *   states mentioned in 2 above plus a ground) to a bread board as follows:
+ *     Wires 0,3,6, 9 are connected together on Arduino pin 2
+ *     Wires 1,4,7,10 are connected together on Arduino pin 3
+ *     Wires 2,5,8,11 are connected together on Arduino pin 4
+ * 3-Since only 1 of the 12 wires is "on" at any time, only one of the 
+ *   pins 2, 3, and 4 will be "on" at any one time.
+ * 4-Each time the Arduino loops, it determines the active pin.
+ * 5-If the active pin has changed, then it is time to send a keypress.
+ * 6-If the state moved from pin 2 (state 0) to pin 3 (state 1) or from
+ *   pin 3 (state 1) to pin 4 (state2) or from pin 4 (state 2) to 
+ *   pin 2 (state 0), then we have moved clockwise and a clockwise keypress
+ *   is generated.
+ * 7-If the state moved from state 2 to state 1, from state 1 to state 0, or
+ *   from state 0 to state 2, the a counter-clockwise rotation has occured
+ *   and the counter-clockwise keypress is sent.
+ */
+
+#include <Keyboard.h>
+
+// To debug or not to debug
+#define DEBUG 1
+
+// keys to use for clockwise and counter-clockwise rotations
+#define CLOCKWISE_KEY '.'
+#define COUNTER_CLOCKWISE_KEY ','
+
+#define DEBOUNCE_MS       10
+#define KEYPRESS_DOWN_MS  25
+#define FIRST_PIN          2
+#define MIDDLE_PIN         8
+#define LAST_PIN          13
+
+// Remember the pin that was active the last time we checked.
+int previousState = 0;
+
+// Set all pins to a high, readable state. (This is standard for arcade
+// controls that receive electricity via these pins.)
+void initializePins() 
+{
+  if ( DEBUG == 1 )
+  {
+    Serial.println( "--> Initializing Pins" );
+  }
+
+  for ( int i=FIRST_PIN; i<=LAST_PIN; i++ )
+  {
+    pinMode( i, INPUT_PULLUP );
+  }
+}
+
+// Check the pins and determine which one is low (meaning active).
+int getActivePin()
+{
+  int pinState;
+
+  for ( int i=FIRST_PIN; i<=LAST_PIN; i++ )
+  {
+    pinState = digitalRead( i );
+    if ( pinState == 0 )
+      return i;
+    }
+    
+    return previousState;
+}
+
+// Has there been a clockwise move detected?
+// If a move has been detected before this routine is called, then
+// a false return indicates a counterclockwise rotation.
+// A true indicates a clockwise rotation.
+boolean moveClockwise( int beforePin, int afterPin )
+{
+  if ( beforePin+1 == afterPin )
+  {
+    return true;  
+  } else if ( beforePin == afterPin+1 )
+  {
+    return false;
+  } else 
+  {
+    return (afterPin < MIDDLE_PIN);
+  }
+}
+
+// Generate a keypress indicating a clockwise rotation
+void moveClockwiseKeypress()
+{
+  Keyboard.press( CLOCKWISE_KEY );
+  delay(KEYPRESS_DOWN_MS);
+  Keyboard.release( CLOCKWISE_KEY );
+}
+
+// Generate a keypress indicating a counter-clockwise rotation
+void moveCounterClockwiseKeypress()
+{
+  Keyboard.press( COUNTER_CLOCKWISE_KEY );
+  delay(KEYPRESS_DOWN_MS);
+  Keyboard.release( COUNTER_CLOCKWISE_KEY );
+}
+
+// Call this routine when the state of the pins has changed.
+// This routine will determine which way the joystick was rotated
+// and send the appropriate keypress out the usb cable.
+void processStateChange( int beforePin, int afterPin )
+{
+  if ( DEBUG == 1 )
+  {
+    char pin1 = '0' + beforePin;
+    char pin2 = '0' + afterPin;
+    
+    Serial.print( "Processing State Change. before: " );
+    Serial.print( pin1 );
+    Serial.print( "  after: " );
+    Serial.println( pin2 );
+    Serial.flush();
+  }
+
+  if ( moveClockwise(beforePin,afterPin) )
+  {
+    moveClockwiseKeypress();
+  } else 
+  {
+    moveCounterClockwiseKeypress();
+  }
+}
+
+// Setup routine that initializes the state of the Arduino device
+void setup() {
+  // put your setup code here, to run once:
+  delay( 100 );
+
+  // Use Serial port in debug mode only.
+  if ( DEBUG == 1 )
+  {
+    // Wait for the serial port to be opened
+    while (!Serial) {
+      // flash led
+      digitalWrite( 13, HIGH );
+      delay(500);
+      digitalWrite( 13, LOW );
+      delay(500);
+    }
+
+    Serial.begin( 9600 );
+    Serial.println( "Starting ..." );
+    Serial.println();
+    Serial.flush();
+  }
+
+  initializePins();
+  delay(10);
+  previousState = getActivePin();
+}
+
+// Constantly check if the joystick has been rotated and
+// process that change of state.
+void loop() {
+  int preDebounceState = getActivePin();
+  if ( preDebounceState != previousState )
+  {
+    int currentState = getActivePin();
+    if ( currentState == preDebounceState )
+      processStateChange( previousState, currentState );
+    previousState = currentState;
+  }
+}
