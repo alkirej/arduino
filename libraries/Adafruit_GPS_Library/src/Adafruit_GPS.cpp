@@ -34,112 +34,6 @@ static bool strStartsWith(const char *str, const char *prefix);
 
 /**************************************************************************/
 /*!
-    @brief Is the field empty, or should we try conversion? Won't work
-    for a text field that starts with an asterisk or a comma, but that
-    probably violates the NMEA-183 standard.
-    @param pStart Pointer to the location of the token in the NMEA string
-    @return true if empty field, false if something there
-*/
-/**************************************************************************/
-/*!
-    @brief Parse a part of an NMEA string for latitude angle
-    @param p Pointer to the location of the token in the NMEA string
-*/
-/**************************************************************************/
-// void Adafruit_GPS::parseLat(char *p) {
-//   char degreebuff[10];
-//   if (!isEmpty(p)) {
-//     strncpy(degreebuff, p, 2);
-//     p += 2;
-//     degreebuff[2] = '\0';
-//     long degree = atol(degreebuff) * 10000000;
-//     strncpy(degreebuff, p, 2); // minutes
-//     p += 3;                    // skip decimal point
-//     strncpy(degreebuff + 2, p, 4);
-//     degreebuff[6] = '\0';
-//     long minutes = 50 * atol(degreebuff) / 3;
-//     latitude_fixed = degree + minutes;
-//     latitude = degree / 100000 + minutes * 0.000006F;
-//     latitudeDegrees = (latitude - 100 * int(latitude / 100)) / 60.0f;
-//     latitudeDegrees += int(latitude / 100);
-//   }
-// }
-
-/**************************************************************************/
-/*!
-    @brief Parse a part of an NMEA string for latitude direction
-    @param p Pointer to the location of the token in the NMEA string
-    @return True if we parsed it, false if it has invalid data
-*/
-/**************************************************************************/
-// bool Adafruit_GPS::parseLatDir(char *p) {
-//   if (p[0] == 'S') {
-//     lat = 'S';
-//     latitudeDegrees *= -1.0f;
-//     latitude_fixed *= -1;
-//   } else if (p[0] == 'N') {
-//     lat = 'N';
-//   } else if (p[0] == ',') {
-//     lat = 0;
-//   } else {
-//     return false;
-//   }
-//   return true;
-// }
-
-/**************************************************************************/
-/*!
-    @brief Parse a part of an NMEA string for longitude angle
-    @param p Pointer to the location of the token in the NMEA string
-*/
-/**************************************************************************/
-// void Adafruit_GPS::parseLon(char *p) {
-//   int32_t degree;
-//   long minutes;
-//   char degreebuff[10];
-//   if (!isEmpty(p)) {
-//     strncpy(degreebuff, p, 3);
-//     p += 3;
-//     degreebuff[3] = '\0';
-//     degree = atol(degreebuff) * 10000000;
-//     strncpy(degreebuff, p, 2); // minutes
-//     p += 3;                    // skip decimal point
-//     strncpy(degreebuff + 2, p, 4);
-//     degreebuff[6] = '\0';
-//     minutes = 50 * atol(degreebuff) / 3;
-//     longitude_fixed = degree + minutes;
-//     longitude = degree / 100000 + minutes * 0.000006F;
-//     longitudeDegrees = (longitude - 100 * int(longitude / 100)) / 60.0f;
-//     longitudeDegrees += int(longitude / 100);
-//   }
-// }
-
-/**************************************************************************/
-/*!
-    @brief Parse a part of an NMEA string for longitude direction
-    @param p Pointer to the location of the token in the NMEA string
-    @return True if we parsed it, false if it has invalid data
-*/
-/**************************************************************************/
-// bool Adafruit_GPS::parseLonDir(char *p) {
-//   if (!isEmpty(p)) {
-//     if (p[0] == 'W') {
-//       lon = 'W';
-//       longitudeDegrees *= -1.0f;
-//       longitude_fixed *= -1;
-//     } else if (p[0] == 'E') {
-//       lon = 'E';
-//     } else if (p[0] == ',') {
-//       lon = 0;
-//     } else {
-//       return false;
-//     }
-//   }
-//   return true;
-// }
-
-/**************************************************************************/
-/*!
     @brief Start the HW or SW serial port
     @param baud_or_i2caddr Baud rate if using serial, I2C address if using I2C
     @returns True on successful hardware init, False on failure
@@ -204,6 +98,17 @@ Adafruit_GPS::Adafruit_GPS(HardwareSerial *ser) {
 
 /**************************************************************************/
 /*!
+    @brief Constructor when using Stream
+    @param data Pointer to a Stream object
+*/
+/**************************************************************************/
+Adafruit_GPS::Adafruit_GPS(Stream *data) {
+  common_init();    // Set everything to common state, then...
+  gpsStream = data; // ...override gpsStream with value passed.
+}
+
+/**************************************************************************/
+/*!
     @brief Constructor when using I2C
     @param theWire Pointer to an I2C TwoWire object
 */
@@ -246,6 +151,7 @@ void Adafruit_GPS::common_init(void) {
   gpsSwSerial = NULL; // Set both to NULL, then override correct
 #endif
   gpsHwSerial = NULL; // port pointer in corresponding constructor
+  gpsStream = NULL;   // port pointer in corresponding constructor
   gpsI2C = NULL;
   gpsSPI = NULL;
   recvdflag = false;
@@ -255,10 +161,10 @@ void Adafruit_GPS::common_init(void) {
   lastline = line2;
 
   hour = minute = seconds = year = month = day = fixquality = fixquality_3d =
-      satellites = 0;  // uint8_t
-  lat = lon = mag = 0; // char
-  fix = false;         // bool
-  milliseconds = 0;    // uint16_t
+      satellites = antenna = 0; // uint8_t
+  lat = lon = mag = 0;          // char
+  fix = false;                  // bool
+  milliseconds = 0;             // uint16_t
   latitude = longitude = geoidheight = altitude = speed = angle = magvariation =
       HDOP = VDOP = PDOP = 0.0; // nmea_float_t
 #ifdef NMEA_EXTENSIONS
@@ -298,6 +204,9 @@ size_t Adafruit_GPS::available(void) {
   if (gpsHwSerial) {
     return gpsHwSerial->available();
   }
+  if (gpsStream) {
+    return gpsStream->available();
+  }
   if (gpsI2C || gpsSPI) {
     return 1; // I2C/SPI doesnt have 'availability' so always has a byte at
               // least to read!
@@ -321,6 +230,9 @@ size_t Adafruit_GPS::write(uint8_t c) {
 #endif
   if (gpsHwSerial) {
     return gpsHwSerial->write(c);
+  }
+  if (gpsStream) {
+    return gpsStream->write(c);
   }
   if (gpsI2C) {
     gpsI2C->beginTransmission(_i2caddr);
@@ -378,6 +290,11 @@ char Adafruit_GPS::read(void) {
     if (!gpsHwSerial->available())
       return c;
     c = gpsHwSerial->read();
+  }
+  if (gpsStream) {
+    if (!gpsStream->available())
+      return c;
+    c = gpsStream->read();
   }
   if (gpsI2C) {
     if (_buff_idx <= _buff_max) {
