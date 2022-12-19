@@ -16,7 +16,7 @@
         =====      ==========      =================
           1          BLUE              6
           2          GREEN             7
-          3          YELLOW            8
+          3          YELLOW            
           4          ORANGE            9
           5          RED             GRD
           6          BROWN            10

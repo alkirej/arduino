@@ -70,13 +70,13 @@
  *     ===        ===========
  *       1          NOT CONNECTED
  *       2          NOT CONNECTED
- *       3          Paddle 1 Button
- *       4          Paddle 2 Button
- *       5          Paddle 2 Potentiometer Output
+ *       3          Paddle 2 Button
+ *       4          Paddle 1 Button
+ *       5          Paddle 1 Potentiometer Output
  *       6          NOT CONNECTED
  *       7          Power for Potentiometers
  *       8          GROUND
- *       9          Paddle 1 Potentiometer Output
+ *       9          Paddle 2 Potentiometer Output
  *
  * ATARI 2600 KEYPAD
  *     Pin        Information
@@ -545,7 +545,7 @@ void checkForMovement()
  * Are any fire buttons being pressed?
  */
 bool isFirePressed() {
-  return  digitalRead( BOARD_BTN_ANY_PIN ) < 1;
+  return  digitalRead( BOARD_BTN_ANY_PIN ) ;
 }
 
 /**

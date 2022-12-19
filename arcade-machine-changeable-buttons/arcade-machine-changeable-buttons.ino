@@ -2,16 +2,22 @@
 #include <LiquidCrystal_I2C.h>
 
 #define DEBUG_MODE true
+#define ACTIVITY_CHECK_DELTA 2
+
+#define PIN_VOLUME_DIAL_PUSH_TO_MUTE 10
 
 
-#define PIN_VOLUME_DIAL_PUSH_TO_MUTE 4
+
+
 #define VOLUME_PIN_1 6
 #define VOLUME_PIN_2 7
 #define SELECT_PIN 8
-#define BACK_PIN 9
+#define BACK_PIN 11
 #define DEBOUNCE_DELAY 10ul
 #define MSG_DURATION 3000ul
+
 #define DELTA_BETWEEN_SCANS 2ul
+
 
 #define UP_ARROW_CHAR 1
 #define DN_ARROW_CHAR 2
@@ -51,6 +57,13 @@
 #define KC_SELECT KEY_ENTER
 #define KC_BACK KEY_ESC
 
+// one hour in milliseconds
+#define INACTIVITY_PERIOD  900000 // 3600000ul
+
+// LAST ACTIVITY
+unsigned long lastAction = 1;
+bool active = true;
+
 // BUTTON PRESS TIMESTAMPS (bpts)
 unsigned long bptsMute = 1;
 unsigned long bptsSel = 1;
@@ -63,15 +76,16 @@ unsigned long dmtsSel = 1;
 unsigned long dmtsBack = 1;
 
 // CURRENT BUTTON STATES
-bool mutePressed = false,
-     lastVolPin = true,
-     selPressed = false,
-     backPressed = false;
+bool mutePressed    = false,
+     volDialTurning = false,
+     selPressed     = false,
+     backPressed    = false;
 
 // LCD DISPLAY OBJECTS
-LiquidCrystal_I2C volumeLcd(0x27, 16, 2);
+LiquidCrystal_I2C volumeLcd(0x25, 16, 2);
 
 LiquidCrystal_I2C allLcds[] = { volumeLcd };
+const int NUM_LCDS = sizeof(allLcds)/sizeof(allLcds[0]);
 
 // ARROW ICONS
 byte UP_ARROW[8] = { B00100,
@@ -191,35 +205,52 @@ void setupVolumeDial() {
 }
 
 // SETUP LCD
+void turnOnBacklights() {
+    for (int i = 0; i < NUM_LCDS; i++) {
+        LiquidCrystal_I2C lcd = allLcds[i];
+        lcd.backlight();
+    }  // for
+}
+void clearLcds() {
+    for (int i = 0; i < NUM_LCDS; i++) {
+        LiquidCrystal_I2C lcd = allLcds[i];
+        lcd.clear();
+    }  // for
+}
 void setupLcds() {
-  serialLogLn("   | Setup LCD");
-  for (int i = 0; i < sizeof(allLcds); i++) {
-    LiquidCrystal_I2C lcd = allLcds[0];
-    lcd.begin();
-    lcd.backlight();
-    lcd.clear();
-  }  // for
-
-  volumeLcd.createChar(UP_ARROW_CHAR, UP_ARROW);
-  volumeLcd.createChar(DN_ARROW_CHAR, DN_ARROW);
-  volumeLcd.createChar(LT_ARROW_CHAR, LT_ARROW);
-  volumeLcd.createChar(RT_ARROW_CHAR, RT_ARROW);
+    serialLogLn("   | Setup LCD");
+    for (int i = 0; i < NUM_LCDS; i++) {
+        LiquidCrystal_I2C lcd = allLcds[i];
+        lcd.begin();
+    }  // for
+    turnOnBacklights();
+    
+    volumeLcd.createChar(UP_ARROW_CHAR, UP_ARROW);
+    volumeLcd.createChar(DN_ARROW_CHAR, DN_ARROW);
+    volumeLcd.createChar(LT_ARROW_CHAR, LT_ARROW);
+    volumeLcd.createChar(RT_ARROW_CHAR, RT_ARROW);
 }
 
 void setupKeyboard() {
   serialLogLn("   | Setup Keyboard");
   Consumer.begin();
   Keyboard.begin();
-  delay(100);
+}
+
+void setLastActionTo(unsigned long now) {
+    lastAction = now;
+    if ( !active ) {
+        turnOnBacklights();
+        active = true;
+    }
 }
 
 // MAIN SETUP ROUTINE
 void setup() {
-  delay(100);
   if (DEBUG_MODE) {
     Serial.begin(9600);
-    while (!Serial) {}
   }
+  delay(1000);
 
   serialLogLn("Beginning Setup");
   setupKeyboard();
@@ -227,12 +258,13 @@ void setup() {
   broadcast("    Setup in    ", "    Progress    ");
 
   setupVolumeDial();
+  setLastActionTo( millis() );
 
   serialLogLn("Setup Complete");
 }
 
 // READ INPUT FROM BUTTONS AND DIALS
-boolean readPin(int pinNum) {
+bool readPin(int pinNum) {
   int val = digitalRead(pinNum);
   /*
   if ( DEBUG_MODE && val != 1 ) {
@@ -273,24 +305,24 @@ unsigned long scanPin(unsigned long now,
   return bpts;
 }
 
-void scanDial(unsigned long now,
-              int pin_1,
-              int pin_2,
-              void (*btnPressFnPtr)(unsigned long, bool),
-              bool& existingState) {
-  bool pin_1State = digitalRead(pin_1),
-       pin_2State = digitalRead(pin_2);
+void scanDial( unsigned long now,
+               int pin_1,
+               int pin_2,
+               void (*dialTurnFnPtr)(unsigned long, bool)
+             ) {
+    bool pin_1State = digitalRead(pin_1),
+         pin_2State = digitalRead(pin_2);
 
-  if (pin_1State && !existingState) {
-    btnPressFnPtr(now, !pin_2State);
-  }
+    if ( volDialTurning &&  pin_1State!=pin_2State ) {
+        dialTurnFnPtr(now, !pin_2State);
+    }
 
-  existingState = pin_1State;
+    volDialTurning = !pin_1State && !pin_2State;
 }
 
 void scanPins(unsigned long now) {
   bptsMute = scanPin(now, PIN_VOLUME_DIAL_PUSH_TO_MUTE, bptsMute, &muteBtnPress, mutePressed);
-  scanDial(now, VOLUME_PIN_1, VOLUME_PIN_2, &volDialTurned, lastVolPin);
+  scanDial(now, VOLUME_PIN_1, VOLUME_PIN_2, &volDialTurned);
   bptsSel = scanPin(now, SELECT_PIN, bptsSel, &selBtnPress, selPressed);
   bptsBack = scanPin(now, BACK_PIN, bptsBack, &backBtnPress, backPressed);
 }
@@ -306,6 +338,7 @@ void volDialTurned(unsigned long now, bool clockwise) {
     Consumer.write(KC_VOL_DOWN);
   }
   dmtsVol = now;
+  setLastActionTo(now);
 }
 
 void muteBtnPress(unsigned long now) {
@@ -315,12 +348,14 @@ void muteBtnPress(unsigned long now) {
   // press the mute key
   Consumer.write(KC_MUTE);
   dmtsMute = now;
+  setLastActionTo(now);
 }
 
 void selBtnPress(unsigned long now) {
   // Indicate on LCD
   lcdMessage(volumeLcd, ML_SEL_ROW, ML_SEL_SIDE, SEL_ARROW, " SELECT", NO_ARROW );
   dmtsSel = now;
+  setLastActionTo(now);
 
   // press the select key
   Keyboard.write(KC_SELECT);
@@ -330,13 +365,37 @@ void backBtnPress(unsigned long now) {
   // Indicate on LCD
   lcdMessage(volumeLcd, ML_BACK_ROW, ML_BACK_SIDE, NO_ARROW, " BACK ", BACK_ARROW );
   dmtsBack = now;
+  setLastActionTo(now);
 
   // press the select key
   Keyboard.write(KC_BACK);
+}
+
+bool checkForInactivity(unsigned long now) {
+
+    return (now-lastAction > INACTIVITY_PERIOD); 
+}
+
+void turnOffBacklights() {
+    for (int i = 0; i < NUM_LCDS; i++) {
+        LiquidCrystal_I2C lcd = allLcds[0];
+        lcd.noBacklight();
+    }  // for
+}
+
+void makeInactive() {
+    active = false;
+
+    serialLogLn("Inactivity Detected.  Dimming LCDs.");
+    turnOffBacklights();
 }
 
 void loop() {
   unsigned long now = millis();
   scanPins(now);
   clearMessages(now);
+  if ( active && checkForInactivity(now) ) {
+      makeInactive();
+  }
+  // delay( ACTIVITY_CHECK_DELTA );
 }
