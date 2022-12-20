@@ -48,10 +48,10 @@ Logger Logger::logln( long number ) {
 }
 
 Logger Logger::log( long number ) {
-    char stringValue[16];
-
-    sprintf( stringValue, "%d", number);
-    return log( stringValue );
+    if ( _debug ) {
+        _port->print( number );
+    }
+    return *this;
 }
 
 Logger Logger::log( const char* message ) {

@@ -52,6 +52,22 @@ void LegacyJoystick::setBtnState( short btnIdx, bool newState ) {
     }
 }
 
+void LegacyJoystick::setAllBtnStates( short count, ButtonState btns[] ) {
+    if ( !inDebounce() ) {
+        bool change = false;
+        for ( int i=0;  i<count;  i++ ) {
+          bool crtChange = setSingleBtnState( btns[i].btnNbr, btns[i].pressed );
+          if ( !change ) {
+              change = crtChange;
+          }
+        } // for
+
+        if ( change ) {
+          startDebounce();
+        } 
+    } // if
+}
+
 bool LegacyJoystick::setSingleBtnState( short btnIdx, bool newState ) {
     bool oldState = _btnState[btnIdx];
     if ( oldState != newState ) {
@@ -61,13 +77,7 @@ bool LegacyJoystick::setSingleBtnState( short btnIdx, bool newState ) {
 
     return oldState != newState;
 }
-/*
-void LegacyJoystick::updateButtonStateBasedOnPin( short pinNbr, short btnNbr ) {
-    short pn  = arduinoPinFor( pinNbr );
-    bool pressed = !digitalRead(pn);
-    setBtnState( btnNbr, pressed );
-}
-*/
+
 void LegacyJoystick::updateButtonStates( short count, short pinNbr[], short btnNbr[] ) {
     if ( !inDebounce() ) {
         bool change = false;
@@ -86,49 +96,51 @@ void LegacyJoystick::updateButtonStates( short count, short pinNbr[], short btnN
     } // if !inDebounce()
 } // updateBtnState fn
 
-inline int16_t LegacyJoystick::arduinoPotToJoystickAxis( int16_t potValue ) {
-    return (potValue+0.5) * AXIS_CONVERSION_FACTOR + LO_AXIS_VALUE;
-}
-
 void LegacyJoystick::setAxisTo( short axisNbr, int16_t value ) {
+    int16_t scaledValue = value;
     switch (axisNbr)  {
         case X_AXIS:
-            _controller.setXAxis( arduinoPotToJoystickAxis(value) );
+            _controller.setXAxis( scaledValue );
             break;
-
         case Y_AXIS:
-            _controller.setYAxis( arduinoPotToJoystickAxis(value) );
+            _controller.setYAxis( scaledValue );
             break;
         case Z_AXIS:
-            _controller.setZAxis( arduinoPotToJoystickAxis(value) );
+            _controller.setZAxis( scaledValue );
             break;
 
         case RX_AXIS:
-            _controller.setRxAxis( arduinoPotToJoystickAxis(value) );
+            _controller.setRxAxis( scaledValue );
             break;
         case RY_AXIS:
-            _controller.setRyAxis( arduinoPotToJoystickAxis(value) );
+            _controller.setRyAxis( scaledValue );
             break;
         case RZ_AXIS:
-            _controller.setRzAxis( arduinoPotToJoystickAxis(value) );
+            _controller.setRzAxis( scaledValue );
             break;
 
         case RUDDER:
-            _controller.setRudder( arduinoPotToJoystickAxis(value) );
+            _controller.setRudder( scaledValue );
             break;
         case THROTTLE:
-            _controller.setThrottle( arduinoPotToJoystickAxis(value) );
+            _controller.setThrottle( scaledValue );
             break;
         case ACCEL:
-            _controller.setAccelerator( arduinoPotToJoystickAxis(value) );
+            _controller.setAccelerator( scaledValue );
             break;
         case BRAKE:
-            _controller.setBrake( arduinoPotToJoystickAxis(value) );
+            _controller.setBrake( scaledValue );
             break;
         case STEERING:
-            _controller.setSteering( arduinoPotToJoystickAxis(value) );
+            _controller.setSteering( scaledValue );
             break;
 
     } // switch
+}
 
+void LegacyJoystick::setAxes( short count, AxisState axes[] ) {
+    for ( int i=0;  i<count;  i++ ) {
+        AxisState crt = axes[i];
+        setAxisTo( crt.axis, crt.loc );
+    }
 }

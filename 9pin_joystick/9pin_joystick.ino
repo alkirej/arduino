@@ -3,7 +3,7 @@
 #include "LegacyJoystick.h"
 #include "LegacyJoystickFactory.h"
 
-short PORT_1_PINS[9] = { 13u,  12,  11,  10, 9, 6, 5, 4, 3 };
+short PORT_1_PINS[9] = { 13,  12,  11,  10, 9, 6, 5, 4, 3 };
 
 const short RESET_BUTTON = {0};
 
