@@ -5,9 +5,6 @@
 
 #define PINS_PER_CONTROLLER 9
 
-#define LO_AXIS_VALUE -1024 //-32767
-#define HI_AXIS_VALUE  1024 // 32767
-
 #define ANALOG_PIN_MIN    0
 #define ANALOG_PIN_MAX 1023
 

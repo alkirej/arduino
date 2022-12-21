@@ -94,8 +94,8 @@ static PinState Intellivision::scanPins( PinSet pinNums ) {
 
 
 #define ZERO     0
-#define FULL  1024 // 32767
-#define HALF   512 // 16384
+#define FULL   511
+#define HALF   255
 
 struct IntvMove { PinState ps; 
                   short     x; 
@@ -130,25 +130,49 @@ void Intellivision::jsStateToUsb() {
     ButtonState fireButtons[INTV_NUM_FIRE_BTNS],
                 keypButtons[INTV_NUM_KEYPAD_BTNS];
 
+    bool preventKeypad = false;
+    bool preventDisc   = false;
+
+    // SIDE BUTTONS (FIRE BUTTONS)
     for ( int i=0;  i<INTV_NUM_FIRE_BTNS; i++ ) {
         PinState fireOnly = ps & FIRE_BTN_MASK;
-        fireButtons[i] = { FIRE_BUTTONS[i].btnNbr, fireOnly==FIRE_BUTTONS[i].ps };
+        bool firing = fireOnly==FIRE_BUTTONS[i].ps;
+        fireButtons[i] = { FIRE_BUTTONS[i].btnNbr, firing };
+        if ( firing ) preventKeypad=true;
     }
     setAllBtnStates( INTV_NUM_FIRE_BTNS, fireButtons);
 
-    for ( int i=0;  i<INTV_NUM_KEYPAD_BTNS; i++ ) {
-        keypButtons[i] = { KEYPAD_BUTTONS[i].btnNbr, ps==KEYPAD_BUTTONS[i].ps };
-    }
-    setAllBtnStates( INTV_NUM_KEYPAD_BTNS, keypButtons);
-
-    for ( int j=0;  j<INTV_NUM_DIRS;  j++ ) {
-        PinState moveOnly = ps & MOVEMENT_MASK;
-        IntvMove dir=dirs[j];
-        if ( moveOnly==dir.ps ) {
-            AxisState both[2] = { {X_AXIS,dir.x}, 
-                                  {Y_AXIS,dir.y} 
-                                };
-            setAxes( 2, both );
+    // KEYPAD BUTTONS
+    if ( preventKeypad ) {
+        for ( int i=0;  i<INTV_NUM_KEYPAD_BTNS; i++ ) {
+            keypButtons[i] = { KEYPAD_BUTTONS[i].btnNbr, false };
         }
+        setAllBtnStates( INTV_NUM_KEYPAD_BTNS, keypButtons);
+    } else {
+        for ( int i=0;  i<INTV_NUM_KEYPAD_BTNS; i++ ) {
+            bool pressing= (ps==KEYPAD_BUTTONS[i].ps);
+            keypButtons[i] = { KEYPAD_BUTTONS[i].btnNbr, pressing };
+            if (pressing) preventDisc=true;
+        }
+        setAllBtnStates( INTV_NUM_KEYPAD_BTNS, keypButtons);
+    }
+
+    if ( preventDisc ) {
+        AxisState still[2] = { {X_AXIS,ZERO+FULL}, 
+                               {Y_AXIS,ZERO+FULL} 
+                             };
+        setAxes( 2, still );
+    } else {
+        // MOVEMENT DISC
+        for ( int j=0;  j<INTV_NUM_DIRS;  j++ ) {
+            PinState moveOnly = ps & MOVEMENT_MASK;
+            IntvMove dir=dirs[j];
+            if ( moveOnly==dir.ps ) {
+                AxisState both[2] = { {X_AXIS,dir.x+FULL}, 
+                                      {Y_AXIS,dir.y+FULL} 
+                                    };
+                setAxes( 2, both );
+            }
+        } // for
     }
 }
