@@ -43,8 +43,8 @@ typedef unsigned char PinState;
 
 class LegacyJoystick {
     public:
-      static short inline joystickPinToArduinoPin( PinSet ardPinNums, short at2600kpPinNum ) {
-          return ardPinNums[ at2600kpPinNum-1 ];
+      static short inline joystickPinToArduinoPin( PinSet ardPinNums, short atariPin ) {
+          return ardPinNums[ atariPin-1 ];
       }
 
       char* getControllerName();

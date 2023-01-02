@@ -14,7 +14,7 @@
 #define F false
 #define T true
 
-#define ID_BTN_NUM 14
+#define ID_BTN_NUM 11 // maps to # key.
 #define FIRE_BTN_MASK B00001110
 #define MOVEMENT_MASK B11110001
 
@@ -59,7 +59,7 @@ Intellivision::Intellivision( PinSet pinNums ) : LegacyJoystick( INTV_DISPLAY_NA
 static Intellivision* Intellivision::checkForIntellivision( PinSet ardPinNums ) {
     setupPins(ardPinNums);
     PinState st = scanPins(ardPinNums);
-    if ( st == KEYPAD_BUTTONS[10].ps ) {
+    if ( st == KEYPAD_BUTTONS[ID_BTN_NUM].ps ) {
         return new Intellivision(ardPinNums);
     }
 
@@ -83,12 +83,11 @@ static PinState Intellivision::scanPins( PinSet pinNums ) {
     for ( int i=1;  i<=INTV_PIN_CNT;  i++ ) {
         short pn = joystickPinToArduinoPin(pinNums, i);
         if ( i < INTV_GND_PIN ) {
-            states[i-1] = !digitalRead( pn );
+            states[i-1] = !digitalRead(pn);
         } else if ( i > INTV_GND_PIN ) { 
             states[i-2] = !digitalRead(pn);
         } // if
     } // for
-
     return buildPinState(states);
 } // fn
 

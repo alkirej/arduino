@@ -3,6 +3,28 @@
 #include "LegacyJoystick.h"
 #include "LegacyJoystickFactory.h"
 
+// !!! del start
+#include "Atari2600Paddles.h" // !!!
+static const Joystick_ JOYSTICK_OBJECT
+                  = Joystick_(
+                       JOYSTICK_DEFAULT_REPORT_ID,
+                       JOYSTICK_TYPE_JOYSTICK,
+                       MAX_BUTTONS_PER_CONTROLLER, // ? buttons
+                       0,     // no hat switches,
+                       true, // x axis
+                       true,  // y axis
+                       false, // z axis
+                       false, // Rx axis
+                       false, // Ry axis
+                       false, // Rz axis
+                       false, // rudder
+                       false, // throttle
+                       false,  // accelerator
+                       false, // brake
+                       false  // steering
+                     );
+// !!! del end
+
 short PORT_1_PINS[9] = { 13,  12,  11,  10, 9, 6, 5, 4, 3 };
 
 const short RESET_BUTTON = {0};
@@ -13,10 +35,11 @@ LegacyJoystick* playerTwo = NULL;
 Logger logger( (HardwareSerial *) &Serial, true);
 
 void setup() {
-    // Serial.begin(9600);
+    Serial.begin(9600);
+    delay(2500);
     logger.logln( "Begin Setup of Legacy 9-pin joystick port.");
 
-    while ( !playerOne && !playerTwo ) {
+    while ( !playerOne ) {
         playerOne = LegacyJoystickFactory::lookforNewJoystick( PORT_1_PINS );
         delay(2);
     }

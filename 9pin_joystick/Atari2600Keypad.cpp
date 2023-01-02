@@ -85,7 +85,7 @@ void Atari2600Keypad::examinOneRowOfButtons( short row ) {
         short colPin = arduinoPinFor(  AT2600KP_COL_PINS[i]  );
         bool pressed = !digitalRead( colPin );
 
-        short btnNum = row*AT2600KP_NUM_COLS + i;
+        short btnNum = 3+row*AT2600KP_NUM_COLS + i; // Keypad buttons start at 3
         setBtnState( btnNum, pressed );
     } // for
 

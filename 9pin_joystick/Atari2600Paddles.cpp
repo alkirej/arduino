@@ -19,12 +19,11 @@
 
 const static short AT2600PDL_BTN_NUMS[ Atari2600Paddles::AT2600PDL_BTN_COUNT ] = 
                    { AT2600PDL_LEFT_BTN_NUM, AT2600PDL_RIGHT_BTN_NUM };
+const static short AT2600PDL_BTN_PIN_LIST[ Atari2600Paddles::AT2600PDL_BTN_COUNT ] = 
+                   { AT2600PDL_LEFT_BUTTON_PIN, AT2600PDL_RIGHT_BUTTON_PIN };
 
 Atari2600Paddles::Atari2600Paddles( PinSet pinNums ) : LegacyJoystick( AT2600PDL_DISPLAY_NAME, pinNums ) {
     setupPins(pinNums);
-
-    AT2600PDL_BTN_PIN_LIST[AT2600PDL_LEFT_BTN_NUM] = AT2600PDL_LEFT_BUTTON_PIN;
-    AT2600PDL_BTN_PIN_LIST[AT2600PDL_LEFT_BTN_NUM] = AT2600PDL_RIGHT_BUTTON_PIN;
 }
 
 static void Atari2600Paddles::setupPins( PinSet ardPinNums ) {
@@ -71,7 +70,10 @@ void Atari2600Paddles::jsStateToUsb() {
 
     // PADDLE POSITIONS
     short pn = arduinoPinFor( AT2600PDL_LEFT_POSITION );
+//pinMode(pn,INPUT);
+//digitalWrite(pn,LOW);
     setAxisTo( X_AXIS, analogRead(pn) );
+//digitalWrite(pn,HIGH);
 
     pn = arduinoPinFor( AT2600PDL_RIGHT_POSITION );
     setAxisTo( Y_AXIS, analogRead(pn) );
