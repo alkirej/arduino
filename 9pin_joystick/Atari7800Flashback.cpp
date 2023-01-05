@@ -26,15 +26,18 @@
 #define SHIFT_REG_PIN_COUNT 8
 #define PWR_PIN 7
 #define GRD_PIN 8
+#define LATCH_PIN 3
+#define CLOCK_PIN 4
+#define DATA_PIN  2
 
 Atari7800Flashback::Atari7800Flashback( PinSet pinNums ) : LegacyJoystick( AT7800FB_DISPLAY_NAME, pinNums ) {
     // _shReg.setup(8,5,4,11,10,12);
     _shReg.setup( SHIFT_REG_PIN_COUNT,
                   arduinoPinFor( PWR_PIN ),
                   arduinoPinFor( GRD_PIN ),
-                  11,
-                  10,
-                  12
+                  arduinoPinFor( LATCH_PIN ),
+                  arduinoPinFor( CLOCK_PIN ),
+                  arduinoPinFor( DATA_PIN )
                 );
 }
 
