@@ -19,21 +19,9 @@
 #define AT7800JS_PWR_PIN       7
 #define AT7800JS_LEFT_BTN_PIN  9
 
-#define AT2600JS_UP_BTN_NUM   0
-#define AT2600JS_RGT_BTN_NUM  1
-#define AT2600JS_DWN_BTN_NUM  2
-#define AT2600JS_LFT_BTN_NUM  3
-#define AT2600JS_BTN_BTN_NUM  4
-
-#define AT7800JS_BTN_JUICE_MIN_THRESHOLD 2
-#define AT7800JS_BTN_JUICE_MAX_THRESHOLD 100
-
 #define AT2600JS_BTN_NUM_1  0
 #define AT2600JS_BTN_NUM_2  1
 #define AT2600JS_BTN_NUM_3  2
-
-#define AT7800JS_BTN_LEFT   1
-#define AT7800JS_BTN_RIGHT  2
 
 Atari2600Joystick::Atari2600Joystick( PinSet pinNums ) : LegacyJoystick( AT2600JS_DISPLAY_NAME, pinNums ) {
     Atari2600Joystick::setupPins(pinNums);
@@ -72,9 +60,9 @@ static void Atari2600Joystick::setupPins( PinSet ardPinNums ) {
 
 #define ATARI_NUM_DIRS 4
 
-struct AtariMove { short  pin; 
-                   short axis; 
-                   short  val; 
+struct AtariMove { short  pin;
+                   short axis;
+                   short  val;
                  };
 static const AtariMove dirs[ATARI_NUM_DIRS] =
     { { 1, Y_AXIS, POSITIVE }, // up
@@ -145,7 +133,7 @@ void Atari2600Joystick::jsStateToUsb() {
     if ( _drvPdl ) {
         drvPdlStateToUsb();
         return;
-    } 
+    }
 
     pn = arduinoPinFor( AT2600JS_BTN_2_PIN );
     pressed = !digitalRead( pn );
@@ -155,7 +143,7 @@ void Atari2600Joystick::jsStateToUsb() {
     short x = ZERO,
           y = ZERO;
     for ( int i=0;  i<ATARI_NUM_DIRS; i++ ) {
-        AtariMove mv = dirs[i];       
+        AtariMove mv = dirs[i];
         pn = arduinoPinFor( mv.pin );
         pressed = !digitalRead( pn );
         if (pressed) {

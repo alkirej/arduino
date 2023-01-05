@@ -62,6 +62,7 @@ class LegacyJoystick {
       bool*     _btnState;
       short     _btnZero;
       PinSet    _pins;
+      short     _controllerCount=1;
 
       // private constructor
       LegacyJoystick( char* controllerName, PinSet pinSet );

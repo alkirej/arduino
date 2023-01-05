@@ -4,8 +4,9 @@
 #include "Atari2600Keypad.h"
 #include "Atari2600Paddles.h"
 #include "Atari2600Joystick.h"
-// #include "Atari2600/Atari7800Flashback.h"
+// #include "Atari7800Flashback.h"
 #include "Intellivision.h"
+#include "TI994aJoystick.h"
 
 #define FIRST_BUTTON_PORT_1 0
 #define FIRST_BUTTON_PORT_2 15
@@ -76,11 +77,15 @@ static LegacyJoystick* LegacyJoystickFactory::lookforNewJoystick( PinSet pinNums
       newJs = Atari2600Paddles::checkForAtari2600Paddles( pinNums );
     }
 
+    if ( !newJs ) {
+      newJs = TI994aJoystick::checkForTI994aJoysticks( pinNums );
+    }
+
     if ( newJs ) {
         short firstBtn=FIRST_BUTTON_PORT_1;
         if ( p1_exists ) firstBtn=FIRST_BUTTON_PORT_2;
         newJs->setup( JOYSTICK_OBJECT, firstBtn );
-        if ( p1_exists ) p2_exists=true; 
+        if ( p1_exists ) p2_exists=true;
         else p1_exists=true;
     }
 
