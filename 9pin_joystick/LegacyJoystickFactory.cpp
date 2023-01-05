@@ -4,7 +4,8 @@
 #include "Atari2600Keypad.h"
 #include "Atari2600Paddles.h"
 #include "Atari2600Joystick.h"
-// #include "Atari7800Flashback.h"
+#include "Atari7800Flashback.h"
+
 #include "Intellivision.h"
 #include "TI994aJoystick.h"
 
@@ -65,7 +66,7 @@ static LegacyJoystick* LegacyJoystickFactory::lookforNewJoystick( PinSet pinNums
     }
 
     if ( !newJs ) {
-      // newJs = Atari7800Flashback::checkForAtari7800Flashback( pinNums );
+      newJs = Atari7800Flashback::checkForAtari7800Flashback( pinNums );
     }
     if ( !newJs ) {
       newJs = Atari2600Joystick::checkForAtariJoystick( pinNums );

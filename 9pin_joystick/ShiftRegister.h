@@ -5,13 +5,14 @@
 
 class ShiftRegister {
     public:
-        ShiftRegister( short pinCount,
-                       short pwrPin,
-                       short grdPin,
-                       short latchPin,
-                       short clockPin,
-                       short dataPin
-                     );
+        ShiftRegister();
+        void setup( short pinCount,
+                    short pwrPin,
+                    short grdPin,
+                    short latchPin,
+                    short clockPin,
+                    short dataPin
+                  );
         bool* readPins();
         bool  isPressed( short idx );
 

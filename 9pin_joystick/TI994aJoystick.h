@@ -15,6 +15,8 @@ class TI994aJoystick : public LegacyJoystick {
 
         void jsStateToUsb() override;
 
+        static TI994aJoystick* checkForButtonPress( PinSet ardPinNums, bool left );
+
         bool _leftJs;
 };
 

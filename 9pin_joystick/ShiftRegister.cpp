@@ -1,14 +1,15 @@
 #include "ShiftRegister.h"
+#include <Logger.h>
 
+ShiftRegister::ShiftRegister() { }
 
-
-ShiftRegister::ShiftRegister( short pinCount,
-                              short pwrPin,
-                              short grdPin,
-                              short latchPin,
-                              short clockPin,
-                              short dataPin
-                            ) {
+void ShiftRegister::setup( short pinCount,
+                           short pwrPin,
+                           short grdPin,
+                           short latchPin,
+                           short clockPin,
+                           short dataPin
+                         ) {
     _pinCount = pinCount;
 
     _pwrPin   = pwrPin;

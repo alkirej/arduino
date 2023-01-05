@@ -49,41 +49,34 @@ static void TI994aJoystick::setupPins( PinSet ardPinNums ) {
     digitalWrite( pn, HIGH );
 }
 
+TI994aJoystick* TI994aJoystick::checkForButtonPress( PinSet ardPinNums, bool left ) {
+    short grdPn;
+    if ( left ) {
+        grdPn = PIN_JS1_GRD;
+    } else {
+        grdPn = PIN_JS2_GRD;
+    }
+    grdPn = joystickPinToArduinoPin( ardPinNums, grdPn );
+
+    pinMode( grdPn, OUTPUT );
+    digitalWrite( grdPn, LOW );
+
+    short pn  = joystickPinToArduinoPin( ardPinNums, PIN_BTN );
+    bool val = !digitalRead( pn );
+    digitalWrite( grdPn, HIGH );
+
+    if ( val ) {
+        return new TI994aJoystick(ardPinNums,left);
+    }
+    return NULL;
+}
 
 TI994aJoystick* TI994aJoystick::checkForTI994aJoysticks( PinSet ardPinNums ) {
     setupPins(ardPinNums);
 
-    // Setup to read left joystick
-    short grd_pn = joystickPinToArduinoPin( ardPinNums, PIN_JS1_GRD );
-    pinMode( grd_pn, OUTPUT );
-    digitalWrite( grd_pn, LOW );
-
-    short pn  = joystickPinToArduinoPin( ardPinNums, PIN_BTN );
-    bool val = !digitalRead( pn );
-
-    if ( val ) {
-        return new TI994aJoystick(ardPinNums,true);
-    }
-
-    // Done reading left joystick
-    digitalWrite( grd_pn, HIGH );
-
-    // Setup to read right joystick
-    grd_pn = joystickPinToArduinoPin( ardPinNums, PIN_JS2_GRD );
-    pinMode( grd_pn, OUTPUT );
-    digitalWrite( grd_pn, LOW );
-
-    pn  = joystickPinToArduinoPin( ardPinNums, PIN_BTN );
-    val = !digitalRead( pn );
-
-    if ( val ) {
-        return new TI994aJoystick(ardPinNums,false);
-    }
-
-    // done reading right joystick
-    digitalWrite( grd_pn, HIGH );
-
-    return NULL;
+    TI994aJoystick* js = checkForButtonPress( ardPinNums, true );
+    if (js) return js;
+    return checkForButtonPress( ardPinNums, false );
 }
 
 #define POS  1024
